@@ -1,6 +1,6 @@
-# Ignition
+# Ignition BASIC
 
-Ignition is a small, 1978-flavored BASIC with a browser IDE. It runs your program live and, from the same source, emits **readable, idiomatic JavaScript and Rust** you would actually commit. The readability of that output is the product: every other BASIC either runs your old programs or compiles to something you'll never read.
+Ignition BASIC is a small, 1978-flavored BASIC with a browser IDE. It runs your program live and, from the same source, emits **readable, idiomatic JavaScript and Rust** you would actually commit. The readability of that output is the product: every other BASIC either runs your old programs or compiles to something you'll never read.
 
 You write the way TRS-80 Level II BASIC taught a generation to write — line numbers, `GOTO`, `GOSUB`, `FOR`/`NEXT` — and see what that program *is* in a modern structured language, line for line, in two language families: dynamic and garbage-collected (JavaScript), and static with ownership (Rust). Clicking a BASIC line highlights the code it became. When tangled source produces awkward output, the IDE shows you why instead of hiding it.
 
