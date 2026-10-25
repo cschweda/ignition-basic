@@ -17,6 +17,7 @@ Working toward **0.1.0 — Phase 1 ("Spark")**: the Level 1 interpreter, the gol
 - Design for six period dialects (Microsoft 8K BASIC, TRS-80 Level II, Commodore BASIC V2, Applesoft, Sinclair BASIC, Palo Alto Tiny BASIC) and a Games library of David Ahl's *BASIC Computer Games*, planned for after Phase 2 ([Master Design §9](docs/ignition-00-master-design.md#9-period-dialects)).
 
 - Monorepo skeleton: pnpm workspaces (`packages/core`, `packages/rt-js`, `packages/examples`, `tools/conformance`), TypeScript, Vitest, ESLint, Prettier and a GitHub Actions workflow. `CLAUDE.md` holds the working rules and `docs/DECISIONS.md` records choices the spec leaves open.
+- `@ignition/rt-js`: the number formatter, `ROUND`, the numeric grammar shared by DATA, INPUT and `VAL`, the xorshift128+ generator and `RND`, every other Phase 1 built-in, PRINT's column and zone logic, and INPUT's field parser. It reproduces every Doc 01 test vector.
 
 ### Changed
 
