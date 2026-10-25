@@ -6,7 +6,7 @@ You write the way TRS-80 Level II BASIC taught a generation to write — line nu
 
 It will also run the classics as they were. A dialect picker switches a program to one of six period BASICs: Microsoft 8K BASIC (Altair), TRS-80 Level II, Commodore BASIC V2 (PET, VIC-20, C64), Applesoft (Apple II), Sinclair BASIC (ZX81 / Timex Sinclair 1000) or Palo Alto Tiny BASIC from *Dr. Dobb's Journal*. A Games menu loads the programs from David Ahl's *BASIC Computer Games* (1978). Both arrive after Phase 2 ([Master Design §9](docs/ignition-00-master-design.md#9-period-dialects)).
 
-> **Status: design complete, code not started.** Phase 1 ("Spark") is next and will ship as **0.1.0**: the Level 1 interpreter, a golden-transcript conformance suite and the browser IDE. Compilation to JavaScript and Rust arrives in Phases 3 and 4.
+> **Status: Phase 1 ("Spark") is half built.** The Level 1 interpreter and its golden-transcript conformance suite work: all ten example programs reproduce their transcripts. The browser IDE comes next, and with it release **0.1.0**. Compilation to JavaScript and Rust arrives in Phases 3 and 4.
 
 ## A taste
 
@@ -61,26 +61,30 @@ main();
 
 ## Getting started
 
-There's nothing to run yet. Once Phase 1 lands, from a clone:
+From a clone:
 
 ```bash
 nvm use                  # Node 24, from .nvmrc
-corepack enable          # or: npm install -g pnpm
+corepack enable          # pnpm, at the version package.json pins
 pnpm install
-pnpm test                # unit tests + golden transcripts
-pnpm --filter ide dev    # the IDE, at http://localhost:3000
+pnpm test                # the unit tests, then every golden transcript
+pnpm conform 02-guess    # one example's transcripts, with a diff on failure
 ```
 
-## Planned layout
+The IDE (`pnpm --filter ide dev`) arrives with the rest of Phase 1.
+
+## Layout
 
 ```
-packages/core        @ignition/core     lexer, parser, semantic pass, interpreter (later: CFG, relooper, emitters)
-packages/rt-js       @ignition/rt-js    runtime shared by the interpreter and emitted JavaScript
-packages/lang-cm     @ignition/lang-cm  CodeMirror 6 language support
+packages/core        @ignition/core     lexer, parser, semantic pass, lowering, interpreter (later: CFG, relooper, emitters)
+packages/rt-js       @ignition/rt-js    runtime shared by the interpreter and, from Phase 3, the emitted JavaScript
 packages/examples                       example programs with golden transcripts
-apps/ide                                Nuxt 4 IDE: static build, deployed to Netlify
 tools/conformance                       runs every example and diffs it against its golden transcript
+packages/lang-cm     @ignition/lang-cm  CodeMirror 6 language support (coming with the IDE)
+apps/ide                                Nuxt 4 IDE: static build, deployed to Netlify (coming)
 ```
+
+`CLAUDE.md` holds the working rules, and `docs/DECISIONS.md` records every choice the spec left open.
 
 ## License
 
