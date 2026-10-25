@@ -40,6 +40,14 @@ describe('expressions (Doc 01 §5)', () => {
     expect(output('10 A$ = "AB": PRINT A$ + "CD"')).toBe('ABCD\n')
   })
 
+  test('a string that doubles past 16,777,216 characters stops with ?OM', () => {
+    // 2^24 characters is allowed; the 25th doubling is refused.
+    const counts = Array.from({ length: 25 }, (_, k) => k).join('')
+    expect(output('10 A$ = "X"\n20 PRINT N;: A$ = A$ + A$: N = N + 1: GOTO 20')).toBe(
+      `${counts}\n?OM ERROR IN 20\n`,
+    )
+  })
+
   test('division by zero raises ?/0', () => {
     const r = run('10 PRINT 1 / 0')
     expect(r.output()).toBe('?/0 ERROR IN 10\n')

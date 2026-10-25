@@ -2,10 +2,11 @@
  * The operators and storage rules that need more than a bare JavaScript operator (Doc 01 §4 and
  * §5). `+`, `-`, `*` and `^` follow IEEE and need no helper.
  */
+import { MAX_STRING_LENGTH } from './builtins.ts'
 import { checkFinite, MAX_SAFE } from './checks.ts'
 import { fault } from './errors.ts'
 import { formatNumber } from './format.ts'
-import { codePoints } from './strings.ts'
+import { codePointLength, codePoints } from './strings.ts'
 
 /** `/`: IEEE division, except that a divisor of 0 or -0 raises ?/0. */
 export function divide(a: number, b: number): number {
@@ -92,4 +93,20 @@ export function midAssign(
   const v = codePoints(value)
   for (let k = 0; k < count; k++) t[from - 1 + k] = v[k] ?? ''
   return t.join('')
+}
+
+/**
+ * String `+`: concatenation, refusing a result longer than 16,777,216 code points with ?OM, the
+ * same limit STRING$ and SPACE$ keep (docs/DECISIONS.md). A program that doubles a string in a
+ * loop then stops with an error instead of exhausting memory. Code points are counted only when
+ * the UTF-16 length is already over the limit, so the usual case costs nothing.
+ */
+export function concat(a: string, b: string): string {
+  if (a.length + b.length > MAX_STRING_LENGTH) {
+    const length = codePointLength(a) + codePointLength(b)
+    if (length > MAX_STRING_LENGTH) {
+      fault('OM', `a string of ${length.toLocaleString('en-US')} characters is too long`)
+    }
+  }
+  return a + b
 }

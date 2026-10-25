@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { compareStrings, divide, intDiv, midAssign, mod, toInteger } from '../src/index.ts'
+import { compareStrings, concat, divide, intDiv, midAssign, mod, toInteger } from '../src/index.ts'
 import { faultCode } from './helpers.ts'
 
 describe('/ (Doc 01 §5)', () => {
@@ -93,5 +93,22 @@ describe('the MID$ statement (Doc 01 §12)', () => {
     expect(faultCode(() => midAssign('ABC', 0, undefined, 'x'))).toBe('FC')
     expect(faultCode(() => midAssign('ABC', 4, undefined, 'x'))).toBe('FC')
     expect(faultCode(() => midAssign('ABC', 1, -1, 'x'))).toBe('FC')
+  })
+})
+
+describe('string + (docs/DECISIONS.md)', () => {
+  test('concatenates', () => {
+    expect(concat('AB', 'CD')).toBe('ABCD')
+  })
+
+  test('allows exactly 16,777,216 characters and refuses one more with ?OM', () => {
+    const full = 'A'.repeat(16_777_216)
+    expect(concat(full, '').length).toBe(16_777_216)
+    expect(faultCode(() => concat(full, 'B'))).toBe('OM')
+  })
+
+  test('counts code points, not UTF-16 units', () => {
+    const emoji = '😀'.repeat(8_388_609)
+    expect(faultCode(() => concat(emoji, ''))).toBeUndefined()
   })
 })

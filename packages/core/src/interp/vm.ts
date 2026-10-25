@@ -15,6 +15,7 @@ import {
   BasicFault,
   chr,
   compareStrings,
+  concat,
   cos,
   createGenerator,
   divide,
@@ -731,7 +732,7 @@ class Machine implements VM {
         if (typeof l === 'string' && typeof r === 'string') {
           switch (e.op) {
             case '+':
-              return l + r
+              return concat(l, r)
             case '=':
               return l === r
             case '<>':
