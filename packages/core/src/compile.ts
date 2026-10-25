@@ -3,6 +3,7 @@ import type { Index } from './index/types.ts'
 import type { LoweredProgram } from './lower/ir.ts'
 import { lower } from './lower/lower.ts'
 import { parse } from './parser/parser.ts'
+import { IGNITION_PROFILE } from './profile.ts'
 import { analyze } from './semantic/analyze.ts'
 
 export interface CompileOptions {
@@ -26,7 +27,7 @@ export function compile(source: string, options: CompileOptions = {}): CompileRe
   if (dialect !== 'ignition') {
     throw new Error(`unknown dialect "${String(dialect)}": Phase 1 has only "ignition"`)
   }
-  const parsed = parse(source)
+  const parsed = parse(source, IGNITION_PROFILE.keywords)
   const analysis = analyze(parsed.program, { reportLoops: parsed.errors.length === 0 })
   const errors = [...parsed.errors, ...analysis.errors].sort(
     (a, b) => (a.pos?.line ?? 0) - (b.pos?.line ?? 0) || (a.pos?.col ?? 0) - (b.pos?.col ?? 0),

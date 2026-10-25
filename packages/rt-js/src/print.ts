@@ -11,12 +11,16 @@ export interface ConsoleSink {
   cls(): void
 }
 
-/** The layout rules a dialect's PRINT follows. Ignition: zones 16 wide, no line width (Doc 01 §7). */
+/**
+ * What a dialect's PRINT does differently: its zone width and how it shows a number. Ignition's
+ * zones are 16 wide, it has no line width, and numbers follow Doc 01 §6.
+ */
 export interface PrintRules {
   zoneWidth: number
+  formatNumber(x: number): string
 }
 
-export const IGNITION_PRINT_RULES: PrintRules = { zoneWidth: 16 }
+export const IGNITION_PRINT_RULES: PrintRules = { zoneWidth: 16, formatNumber }
 
 /**
  * PRINT's column logic (Doc 01 §7), shared by every console so they all print identically.
@@ -46,9 +50,9 @@ export class Printer {
       lastBreak === -1 ? this.#column + codePointLength(s) : codePointLength(s.slice(lastBreak + 1))
   }
 
-  /** Prints a number as Doc 01 §6 formats it. */
+  /** Prints a number the way the dialect shows it. */
   number(x: number): void {
-    this.text(formatNumber(x))
+    this.text(this.#rules.formatNumber(x))
   }
 
   /** A `,` separator: spaces up to the next zone boundary greater than the current column. */
@@ -60,9 +64,7 @@ export class Printer {
 
   /** TAB(n): spaces up to column `n` (counting from 0), or nothing if already there or past. */
   tab(n: number): void {
-    checkFinite('TAB', n)
-    const target = Math.trunc(n)
-    if (target < 0 || target > 255) fault('FC', `TAB(${target}) is outside 0 to 255`)
+    const target = tabColumn(n)
     if (this.#column < target) this.text(' '.repeat(target - this.#column))
   }
 
@@ -80,4 +82,15 @@ export class Printer {
   startLine(): void {
     if (this.#column !== 0) this.newline()
   }
+}
+
+/**
+ * Checks a TAB argument and returns the column it asks for (Doc 01 §7): truncated, and within
+ * 0-255 or ?FC. PRINT checks every item before printing any, so this runs on its own first.
+ */
+export function tabColumn(n: number): number {
+  checkFinite('TAB', n)
+  const column = Math.trunc(n)
+  if (column < 0 || column > 255) fault('FC', `TAB(${column}) is outside 0 to 255`)
+  return column
 }

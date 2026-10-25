@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { Printer } from '../src/index.ts'
+import { Printer, tabColumn } from '../src/index.ts'
 import { faultCode } from './helpers.ts'
 
 /** A console that records what it is sent; `<CLS>` marks a clear. */
@@ -111,5 +111,18 @@ describe('startLine', () => {
     printer.startLine()
     printer.startLine()
     expect(output()).toBe('X\n')
+  })
+})
+
+describe('tabColumn: the TAB check on its own', () => {
+  test('returns the truncated column', () => {
+    expect(tabColumn(5.9)).toBe(5)
+    expect(tabColumn(0)).toBe(0)
+  })
+
+  test('refuses columns outside 0-255, and non-finite values, with ?FC', () => {
+    expect(faultCode(() => tabColumn(256))).toBe('FC')
+    expect(faultCode(() => tabColumn(-0.5))).toBeUndefined()
+    expect(faultCode(() => tabColumn(Infinity))).toBe('FC')
   })
 })

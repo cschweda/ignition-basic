@@ -18,6 +18,7 @@ Working toward **0.1.0 — Phase 1 ("Spark")**: the Level 1 interpreter, the gol
 
 - Monorepo skeleton: pnpm workspaces (`packages/core`, `packages/rt-js`, `packages/examples`, `tools/conformance`), TypeScript, Vitest, ESLint, Prettier and a GitHub Actions workflow. `CLAUDE.md` holds the working rules and `docs/DECISIONS.md` records choices the spec leaves open.
 - `@ignition/rt-js`: the number formatter, `ROUND`, the numeric grammar shared by DATA, INPUT and `VAL`, the xorshift128+ generator and `RND`, every other Phase 1 built-in, PRINT's column and zone logic, and INPUT's field parser. It reproduces every Doc 01 test vector.
+- `@ignition/core`: the lexer, parser, semantic pass (with the Index object), lowering to a flat instruction list, `compile()`, and the step-driven reference interpreter `createVM()`, which holds all of its control state as data, runs INPUT through the host, and has the idle and dispatch hook for Phase 6.
 
 ### Changed
 

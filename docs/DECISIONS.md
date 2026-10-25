@@ -23,6 +23,12 @@ Choices made where the spec (Doc 01 and Master Design §2) is silent, each with 
 - **Each statement's position is its first token; each operator's node takes the operator's position,** so a type error points at the `+` that caused it.
 - **PRINT evaluates all of its items, left to right, before printing any of them.** An error in one item therefore prints nothing from that PRINT (`PRINT "1 / X IS "; 1 / X` shows only the error), and TAB's argument is checked during evaluation. Phase 3 can then emit a PRINT as one runtime call, `io.print(a, b, c)`, which evaluates its arguments the same way in JavaScript and Rust.
 - **Example 10 covers all ten runtime errors**, not just the three the plan names (/0, BS, RG), because its title promises every one.
+- **`^` is JavaScript's `**`** (ECMAScript's exponentiate), so `1 ^ NAN` and `(-1) ^ INF` are NaN. C's and Rust's `pow` return 1 for both; the Rust runtime will have to special-case them to match.
+- **`\`, `MOD` and `%` storage never produce -0.** The Rust runtime will compute these in `i64`, which has no -0, and `(-0) ^ -1` would otherwise print `-INF` in one backend and `INF` in the other.
+- **INPUT and READ store each target before evaluating the next target's subscripts,** so `INPUT I, A(I)` and `READ I, A(I)` use the new `I`, as classic BASIC did. Doc 01's "evaluate the targets' subscripts left to right and store left to right" allows either order.
+- **DIM evaluates all of one array's bounds before checking any of them,** and checks them (?FC) before checking whether the array already exists (?DD). Phase 3 can then emit `dim("A", [b1, b2])` with JavaScript's own argument order.
+- **The label INPUT passes to `requestInput` is the prompt's text, or `?` when there is none.** The `??` continuation keeps the same label.
+- **STOP prints `BREAK IN n` followed by a line break,** like an error line.
 
 ## Golden changes
 

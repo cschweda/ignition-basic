@@ -8,9 +8,10 @@ export type { ScannedNumber } from './numeric.ts'
 export { createGenerator, nextFloat, randomize, rnd } from './generator.ts'
 export type { GeneratorState } from './generator.ts'
 export { codePointLength } from './strings.ts'
-export { IGNITION_PRINT_RULES, Printer } from './print.ts'
+export { IGNITION_PRINT_RULES, Printer, tabColumn } from './print.ts'
 export type { ConsoleSink, PrintRules } from './print.ts'
 export { convertInputField, splitInputLine, wholeLineField } from './input.ts'
+export { compareStrings, divide, intDiv, midAssign, mod, toInteger } from './operators.ts'
 export type { InputField, InputTarget } from './input.ts'
 export {
   abs,
