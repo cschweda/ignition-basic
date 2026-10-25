@@ -36,6 +36,19 @@ Choices made where the spec (Doc 01 and Master Design §2) is silent, each with 
 - **Golden transcripts use LF line endings and end with exactly one line break** (Doc 01 §18). `.gitattributes` keeps a Windows checkout from converting them, and the conformance tool reports a golden with carriage returns, or a wrong ending, as a problem instead of a confusing diff.
 - **The semantic pass and lowering don't take the dialect profile yet.** Doc 01 §16 says they consult it, but in Phase 1 they have nothing dialect-specific to look up; the lexer (keywords) and the interpreter (number formatting, PRINT zones, the INPUT parser and texts, RND, error lines, STOP) do. They gain a profile parameter when D1 gives them something to ask.
 
+## Known minor issues
+
+Found by the Checkpoint 1 review and deliberately left for later: none changes a golden or a correct program's output.
+
+- UCASE$ and LCASE$ can make a string longer than the 16,777,216-character cap (at most threefold).
+- `compile()` doesn't hand the expression types to the program. Phase 3 needs them: string `<` and `+` must call `compareStrings` and `concat`, and Rust needs every type. Source spans (start and end) would also help the IDE underline errors.
+- LEFT$, RIGHT$, MID$ and INSTR copy the whole string on each call, so a character-by-character loop over a very long string is quadratic. Strings without surrogate pairs could take a fast path.
+- A UTF-8 byte-order mark at the start of the source is ?SN on line 1. The IDE's file loading strips it; the CLI doesn't.
+- An unexpected invisible character, such as a pasted no-break space, appears as-is in its error message rather than by code point.
+- `INPUT "", A` gives `requestInput` an empty label, and the IDE's input field needs an accessible name.
+- RND's and RANDOMIZE's error messages format numbers the JavaScript way rather than with `formatNumber`.
+- `dispatch()` after the program has ended or failed queues the event forever.
+
 ## Golden changes
 
 None yet.
