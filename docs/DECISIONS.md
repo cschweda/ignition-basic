@@ -16,6 +16,11 @@ Choices made where the spec (Doc 01 and Master Design §2) is silent, each with 
 - **MIN and MAX keep the earliest argument on a tie.** That decides 0 against -0 the same way in JavaScript and Rust, whose `f64::min` may return either.
 - **STRING$ and SPACE$ raise ?OM above 16,777,216 characters,** the same limit as arrays. String `+` isn't checked, for the reason Doc 01 §5 gives for arithmetic; a host string-length failure there surfaces as ?OM.
 - **ROUND keeps the sign of `x`,** so `ROUND(-0.4)` is -0, which PRINT shows as `0`. Rust's parse of `"-0"` gives the same.
+- **Spaces or tabs may come before a line number.** Doc 01 says a line starts with its number; indented listings are common and allowing them changes no program's meaning.
+- **A keyword needs a non-name character after it, not before it,** exactly as Doc 01 §3 states it. So `FOR I = 1TO 10` lexes as `1`, `TO`, `10`, while `FORI=1TO10` is still the identifiers `FORI` and `TO10`.
+- **A comment after `THEN n` or `ELSE n` is a statement of its own after the IF,** since no branch statements exist for it to join.
+- **`DATA` with nothing after it declares one empty-string item,** the same way the gap in `DATA 1,,3` does.
+- **Each statement's position is its first token; each operator's node takes the operator's position,** so a type error points at the `+` that caused it.
 
 ## Golden changes
 

@@ -34,6 +34,17 @@ export const PHASE_1_KEYWORDS: ReadonlySet<string> = new Set(words(PHASE_1))
 
 const ALL = [PHASE_1, LEVEL_2, IO, GUI, ALSO].flatMap(words)
 
+const PHASE_OF: ReadonlyMap<string, number> = new Map([
+  ...words(LEVEL_2).map((k) => [k, 2] as const),
+  ...words(IO).map((k) => [k, 5] as const),
+  ...words(GUI).map((k) => [k, 6] as const),
+])
+
+/** The phase that gives a reserved keyword its meaning, or null for Phase 1 words and ERROR. */
+export function laterPhaseOf(keyword: string): number | null {
+  return PHASE_OF.get(keyword) ?? null
+}
+
 export const IGNITION_KEYWORDS: KeywordTable = {
   keywords: new Set(ALL),
   reserved: new Set(ALL.map((k) => k.replace(/\$$/, ''))),
