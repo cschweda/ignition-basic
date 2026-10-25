@@ -21,6 +21,8 @@ Choices made where the spec (Doc 01 and Master Design §2) is silent, each with 
 - **A comment after `THEN n` or `ELSE n` is a statement of its own after the IF,** since no branch statements exist for it to join.
 - **`DATA` with nothing after it declares one empty-string item,** the same way the gap in `DATA 1,,3` does.
 - **Each statement's position is its first token; each operator's node takes the operator's position,** so a type error points at the `+` that caused it.
+- **PRINT evaluates all of its items, left to right, before printing any of them.** An error in one item therefore prints nothing from that PRINT (`PRINT "1 / X IS "; 1 / X` shows only the error), and TAB's argument is checked during evaluation. Phase 3 can then emit a PRINT as one runtime call, `io.print(a, b, c)`, which evaluates its arguments the same way in JavaScript and Rust.
+- **Example 10 covers all ten runtime errors**, not just the three the plan names (/0, BS, RG), because its title promises every one.
 
 ## Golden changes
 

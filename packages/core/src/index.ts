@@ -1,1 +1,7 @@
-export {}
+export type { IgnitionError, Pos } from './diagnostics/errors.ts'
+export { lex } from './lexer/lexer.ts'
+export type { LexResult } from './lexer/lexer.ts'
+export type { Token } from './lexer/token.ts'
+export { parse } from './parser/parser.ts'
+export type { ParseResult } from './parser/parser.ts'
+export type * from './ast/ast.ts'

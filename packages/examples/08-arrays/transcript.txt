@@ -1,0 +1,5 @@
+SQUARES: 0 1 4 9 16 25
+..O
+.X.
+...
+SCORES(10) IS 99 AND SCORES(3) IS 0
