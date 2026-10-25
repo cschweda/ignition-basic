@@ -1,0 +1,8 @@
+{
+  "name": "@ignition/examples",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Ignition BASIC example programs and their golden transcripts",
+  "license": "MIT",
+  "type": "module"
+}

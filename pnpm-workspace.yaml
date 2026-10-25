@@ -1,0 +1,6 @@
+packages:
+  - packages/*
+  - tools/*
+
+# Refuse package versions published less than 14 days ago (docs/DECISIONS.md, Tooling).
+minimumReleaseAge: 20160

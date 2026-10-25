@@ -1,0 +1,15 @@
+{
+  "name": "@ignition/core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Ignition BASIC compiler core: lexer, parser, semantic pass, lowering and the reference interpreter",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@ignition/rt-js": "workspace:*"
+  }
+}

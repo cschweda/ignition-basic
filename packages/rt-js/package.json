@@ -1,0 +1,12 @@
+{
+  "name": "@ignition/rt-js",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Ignition BASIC runtime: number formatting, PRINT and INPUT logic, the generator, built-in functions and error codes",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

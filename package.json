@@ -1,0 +1,30 @@
+{
+  "name": "ignition-basic",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Ignition BASIC: a small, 1978-flavored BASIC with a browser IDE that will compile to readable JavaScript and Rust",
+  "license": "MIT",
+  "author": "Christopher Schweda",
+  "type": "module",
+  "packageManager": "pnpm@12.12.1",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "test": "vitest run && pnpm run conform",
+    "conform": "node tools/conformance/src/cli.ts",
+    "lint": "eslint . && prettier --check .",
+    "format": "prettier --write .",
+    "typecheck": "tsc -p packages/rt-js && tsc -p packages/core && tsc -p tools/conformance"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.19.2",
+    "eslint": "^10.12.0",
+    "globals": "^17.13.0",
+    "prettier": "^3.9.10",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.71.1",
+    "vitest": "^5.0.3"
+  }
+}
