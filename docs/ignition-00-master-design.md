@@ -1,9 +1,9 @@
 # Ignition — Doc 00: Master Design
 
-**Version:** 0.1 (draft)
-**Date:** 2026-10-24
+**Version:** 0.2 (draft)
+**Date:** 2026-10-25
 **Author:** Christopher Schweda
-**Status:** Pre-Phase 1 — for review before any code is written
+**Status:** Pre-Phase 1 — for review before any code is written. Version 0.2 adds the period dialects and the Games library (§9).
 
 ---
 
@@ -29,10 +29,10 @@ Ignition's position: **a teaching and prototyping bridge**. Write the way Gates'
 
 ### 1.1 Non-goals
 
-- Not a QBasic/GW-BASIC compatibility target. Existing programs will not run unmodified. (That is the BASIC Museum's job.)
+- The Ignition dialect is not a compatibility target: existing programs won't run on it unmodified. Running them is the job of the period dialects (§9), six BASICs from 1975–1982. Nothing later, so no GW-BASIC or QBasic.
 - Not a general-purpose application language. No classes, no modules, no generics, no async.
 - Not a competitor to TypeScript. If a feature makes Ignition "a worse TypeScript with PRINT," it is rejected.
-- Not cycle-accurate or ROM-accurate. No emulated CPU; no float40.
+- Not cycle-accurate or ROM-accurate. No emulated CPU and no machine ROMs. The period dialects approximate their machines' number formats on top of f64 (§9) rather than emulating them bit for bit.
 
 ### 1.2 Design principles
 
@@ -40,7 +40,7 @@ Ignition's position: **a teaching and prototyping bridge**. Write the way Gates'
 2. **Every construct has a defined meaning in all three backends** (interpreter, JS, Rust). If something can't be given a definite meaning in Rust, it is not in the language.
 3. **Readable output over fast output.** The emitters optimize for a human reader first, a benchmark second.
 4. **Honest ugliness.** When spaghetti source produces awkward output, the IDE shows why instead of hiding it. That is the teaching moment.
-5. **One numeric model.** f64 everywhere, by default. No surprises between backends.
+5. **One numeric model.** f64 everywhere, by default. No surprises between backends. (The period dialects layer their machines' rules on top of f64; §9.)
 
 ---
 
@@ -58,7 +58,7 @@ Ignition defines two tiers of the same language. A program is in whichever tier 
 | Control flow | `GOTO`, `GOSUB`/`RETURN`, `FOR`/`NEXT`, `IF…THEN` (single line), `ON…GOTO/GOSUB` | Adds `WHILE`/`WEND`, `DO…LOOP [WHILE/UNTIL]`, block `IF…ELSEIF…ELSE…END IF`, `SELECT CASE`, `SUB`/`FUNCTION`, `EXIT` |
 | Compile path | Interpreter directly; JS/Rust via CFG + relooper | Interpreter directly; JS/Rust via direct AST lowering |
 | Output quality | Readable when the control flow is reducible; awkward otherwise, and the IDE says so | Readable by construction |
-| Audience | Nostalgia, first-week learners, the Museum crossover | Anyone who wants to ship the output |
+| Audience | Nostalgia, first-week learners, visitors from the period dialects (§9) | Anyone who wants to ship the output |
 
 Level 1 is a strict subset of Level 2. A Level 1 program is a valid Level 2 program. Nothing in Level 2 is forbidden from a line-numbered program; you can mix freely. The tier label is informational (shown in the IDE Index), not a compiler flag.
 
@@ -106,7 +106,7 @@ Decisions:
 **String functions:** `LEN LEFT$ RIGHT$ MID$ (as function and as statement) INSTR STR$ VAL CHR$ ASC UCASE$ LCASE$ TRIM$ STRING$ SPACE$`
 **Misc:** `TIMER` (seconds since program start, f64) · `RANDOMIZE [seed]`
 
-`RND` semantics: `RND(1)` → [0,1); `RND(0)` → repeat last; `RND(n>1)` → integer 1..n. This is Ignition's own convention: `RND(1)` and `RND(0)` follow Microsoft BASIC, and `RND(n>1)` follows TRS-80 Level II (where `RND(0)` was the float and `RND(1)` always returned 1). It was chosen because it's the most useful combination, and the Museum will document the divergence. Exact rules and test vectors are in Doc 01 §13. All three backends use the same seeded PRNG (xorshift128+) so a `RANDOMIZE 42` program produces identical output everywhere. Determinism across backends is a hard requirement — it is how the test suite works.
+`RND` semantics: `RND(1)` → [0,1); `RND(0)` → repeat last; `RND(n>1)` → integer 1..n. This is Ignition's own convention: `RND(1)` and `RND(0)` follow Microsoft BASIC, and `RND(n>1)` follows TRS-80 Level II (where `RND(0)` was the float and `RND(1)` always returned 1). It was chosen because it's the most useful combination; the TRS-80 Level II period dialect (§9) keeps Level II's own convention. Exact rules and test vectors are in Doc 01 §13. All three backends use the same seeded PRNG (xorshift128+) so a `RANDOMIZE 42` program produces identical output everywhere. Determinism across backends is a hard requirement — it is how the test suite works.
 
 ### 2.5 I/O surface — the "steroid" layer, kept tiny
 
@@ -128,7 +128,7 @@ Everything in this table is implemented in two runtime packages — `@ignition/r
 
 ### 2.6 Errors
 
-Compile-time errors carry the source line number and column. Runtime errors carry the originating Ignition line in all three backends (the emitters keep a line map; the runtimes raise errors as an `IgnitionError` object / struct, whose shape is in Doc 01 §15). Classic error names are used where they exist: `?SN ERROR` → "Syntax error", `?RG ERROR` → "RETURN without GOSUB", `?OS ERROR` → "Out of string space" (never raised, but reserved for the Museum crossover), `?BS ERROR` → "Subscript out of range", `?/0 ERROR` → "Division by zero". The full Phase 1 table, which adds `?FC` (illegal function call), `?OV` (overflow), `?DD` (redimensioned array) and `?OM` (out of memory), is in Doc 01 §15. `ON ERROR GOTO` is **not** supported in v1; it would force exception machinery into the Rust output.
+Compile-time errors carry the source line number and column. Runtime errors carry the originating Ignition line in all three backends (the emitters keep a line map; the runtimes raise errors as an `IgnitionError` object / struct, whose shape is in Doc 01 §15). Classic error names are used where they exist: `?SN ERROR` → "Syntax error", `?RG ERROR` → "RETURN without GOSUB", `?OS ERROR` → "Out of string space" (never raised; reserved), `?BS ERROR` → "Subscript out of range", `?/0 ERROR` → "Division by zero". The full Phase 1 table, which adds `?FC` (illegal function call), `?OV` (overflow), `?DD` (redimensioned array) and `?OM` (out of memory), is in Doc 01 §15. `ON ERROR GOTO` is **not** supported in v1; it would force exception machinery into the Rust output.
 
 ### 2.7 Grammar sketch
 
@@ -325,7 +325,7 @@ The exact shape of the `io::print` call in Rust is an open decision (§8); the v
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │  Ignition   [▶ Run] [■ Stop] [⏭ Step]   Target: (Live)(JS)(Rust)    │
-│  File ▾  Examples ▾  Export ▾  Settings ▾                 ◐ theme   │
+│  File ▾ Examples ▾ Games ▾ Export ▾ Settings ▾ Dialect ▾   ◐ theme  │
 ├────────────────────────────┬────────────────────────────────────────┤
 │                            │ [Run] [JavaScript] [Rust] [Index] [Errors] │
 │   SOURCE                   │                                        │
@@ -348,6 +348,8 @@ The exact shape of the `io::print` call in Rust is an open decision (§8); the v
 - **Index tab** is the Inform "Index" idea applied to a BASIC program: variable table with inferred types and first-use lines; procedures (SUB/FUNCTION and extracted GOSUB targets); the relooper report (reducible/irreducible regions, with a one-line suggestion each); tier; implicit DIMs; retro-only features used.
 - **Errors tab**: compile errors as a list, click to jump; runtime errors show the Ignition line and, if the target is JS/Rust, the emitted line too.
 - **Examples menu**: a curated set (the same "guess the number", a `GOSUB`-heavy one to show extraction, a `SELECT CASE` one, a canvas one, a file one). Each example exists to demonstrate one emitter behavior.
+- **Games menu** (from D1): David Ahl's *BASIC Computer Games*, searchable by title, each opened in its own dialect (§9).
+- **Dialect picker** (from D1): sets the current program's dialect, which the status bar shows (§9).
 - **Export menu**: `.bas` source · `.js` single file · `.zip` Cargo project · "Copy JS" / "Copy Rust" · (Phase 6) **App exports**: single-file `.html`, Node CLI, **Tauri project**, Electron project.
 - **Persistence**: programs are saved to `localStorage` keyed by a slug, with export/import JSON. No accounts, no backend (Netlify static). Shareable URLs encode the source in the fragment (LZ-compressed) so a program can be linked.
 
@@ -407,19 +409,22 @@ Netlify cannot run `rustc`. Three escalating options:
 
 ### 6.4 Shared core with sibling projects
 
-- **BASIC Museum** can consume `@ignition/core`'s lexer/parser/interpreter for its Level-1-adjacent dialects by supplying a dialect profile (keyword set, `RND` convention, print formatting). Ignition is the "modern" exhibit in the museum; the museum's classic dialects need not share the emitters at all. Phase 1 doesn't build that profile mechanism: the Museum's dialects differ from Ignition in core semantics (−1 as true, bitwise `AND`/`OR`, padded numbers, loops that always run once), so a profile would fork the interpreter. To keep it possible, the formatter, the `RND` mapping and the keyword table each live in one module (Doc 01 §1).
+- **BASIC Museum** (`github.com/cschweda/basic-museum`, a design with no code). Ignition's period dialects (§9) take its profile design and six of the BASICs it planned to exhibit, or their close relatives. The rest of it — its other dialects, the real-ROM runtimes and CPU cores, `/compare`, the Rosetta tracks — stays parked in that repo. The period dialects differ from Ignition in core semantics (−1 as true, bitwise `AND`/`OR`, padded numbers, loops that always run once), so they are separate front ends and runtime modules over the shared IR and VM, not switches inside Ignition's own rules. Phase 1 builds only their hooks (Doc 01 §16).
 - **Fugløy** needs CFG → structured-code recovery for Z80 → JavaScript. The relooper in `@ignition/core` should take a generic CFG interface (`{ blocks, edges, entry }`) with no BASIC-specific types, so it can be extracted to its own package (`@cschweda/relooper`) later. Design the relooper's input as data, not AST.
 
 ---
 
-## 7. Phase plan (summary — Phases 1–5 each get a doc, 01–05)
+## 7. Phase plan (summary — Phases 1–5 each get a doc, 01–05; the period dialects get Doc 13)
 
 | Phase | Deliverable | Done when |
 |---|---|---|
 | **1 — Spark** (release 0.1.0) | `@ignition/core` lexer/parser/semantic/interpreter for the full Level 1 statement set + core functions; `@ignition/rt-js` core (formatter, PRNG, built-ins); IDE shell with Source + Run + Errors tabs, an Index tab with tier and variables, and Run/Stop/Step; console I/O only; examples menu; localStorage save | 10 example programs run with golden transcripts; IDE on Netlify; keyboard-accessible |
 | **2 — Structure** | Level 2 constructs in parser + interpreter; Index tab complete (procedures, warnings); CodeMirror grammar complete; RENUM; breakpoints | 20 examples; Index correct for all |
-| **3 — JavaScript** | CFG, relooper, GOSUB extraction, JS emitter, `rt-js`; JS tab with cross-highlight; "Run JS" chip in sandboxed iframe; export .js | All 20 examples: emitted JS transcript === interpreter; readability goldens committed |
+| **D1 — Period dialects I** (after Phase 2) | `DialectProfile`; the IR instructions faithful semantics need; Microsoft 8K BASIC and TRS-80 Level II with their `rt-js` modules; dialect picker; Games menu with Ahl's listings | Every Ahl listing parses; each runs a scripted session to a normal end or is listed with its reason; at least 12 hand-checked transcripts are goldens |
+| **3 — JavaScript** | CFG, relooper, GOSUB extraction, JS emitter, `rt-js`; JS tab with cross-highlight; "Run JS" chip in sandboxed iframe; export .js | All 20 examples: emitted JS transcript === interpreter; readability goldens committed; every Ahl game that runs under D1 matches too |
+| **D2 — Period dialects II** (alongside Phase 3) | Commodore BASIC V2 with PET, VIC-20 and C64 screen presets; Applesoft; text only | A tour and a number-guess program with goldens per dialect; their JS passes the transcript gate |
 | **4 — Rust** | Rust emitter; `ignition-rt` crate; Cargo project export; CI builds all examples with cargo; optional Playground compile check | All 20 examples build and match; crate published |
+| **D3 — Period dialects III** (alongside Phase 4) | Sinclair BASIC (ZX81 / Timex Sinclair 1000); Palo Alto Tiny BASIC | The same, in JS and Rust |
 | **5 — Graphics, files, and the live Rust pane** | `SCREEN`/`PSET`/`LINE`/`CIRCLE`, canvas + PNG runtimes; VFS + `OPEN`; droplet build service → WASM → "Run Rust" chip | Side-by-side JS/Rust run of a graphical example in the IDE |
 | **6 — Apps** | GUI verb family (§2.8) in `rt-js`; event loop live in the IDE; App exports: single-file HTML, Node CLI, Tauri project (with Rust-backend commands), Electron project | A form-based example exported as a Tauri app builds and runs on macOS/Linux/Windows |
 
@@ -427,7 +432,7 @@ Phase 1 is deliberately interpreter-only. The emitters are the product, but they
 
 ---
 
-## 8. Open decisions (to settle before Phase 3)
+## 8. Open decisions (to settle before Phase 3 unless noted)
 
 1. **Rust `PRINT` API shape.** Variadic-via-slice (`&[&dyn Display]`), a `print!`-style macro (`iprint!(a, b; c)`), or emitting a `format!` per `PRINT`. Readability test: which one does a Rust reader not blink at? Leaning macro.
 2. **Boolean model.** Confirmed: real booleans, not `-1/0` (§2.7). Open: should `PRINT (1=1)` print `True`, `-1`, or `1`? Leaning `True`/`False` with `OPTION CLASSICPRINT` giving `-1`/`0`. Until it's decided, printing a boolean is a compile-time type error (Doc 01 §4), which keeps every option open.
@@ -436,16 +441,66 @@ Phase 1 is deliberately interpreter-only. The emitters are the product, but they
 5. **Name.** V8's bytecode interpreter is called Ignition; Inductive Automation sells a SCADA platform called Ignition. Keep for now; revisit before any public launch. Candidate alternates to park: *Kindle* (no), *Spark* (overloaded), *Tinder* (absolutely not), *Flint*, *Striker*, *Pilot* (as in pilot light), *Fuse*.
 6. **`ON ERROR GOTO`.** Out for v1; reconsider only if the Rust story (`Result` propagation to a handler) can be made readable.
 7. **Structuring algorithm.** Relooper, or the dominator-tree translation in Ramsey's "Beyond Relooper" (ICFP 2022). For reducible graphs Ramsey's never needs a label variable, only nested blocks and loops with labeled `break`/`continue`, which JS and Rust both have. Prototype both on the Phase 1 examples before Phase 3; readability decides.
+8. **Sinclair keyword entry.** On a ZX81 each keyword is one keypress, so a misspelled keyword can't be typed at all. Reproduce that in the editor for Sinclair programs, or accept typed keywords and check them as every other dialect does? Leaning: accept typed keywords in the editor, and offer keyword entry later in a machine-style console. Settle in Doc 13 before D3.
+9. **The oracle for period-dialect transcripts.** Hand-checked transcripts only, or a reference implementation run in CI as well: Vintage BASIC, which Ahl's listings were normalized against, or a build of Microsoft's MIT-licensed 6502 BASIC source (the museum's ROM idea, cut down to test tooling). Settle before D1's goldens are written.
 
 ---
 
-## 9. Differentiation statement (seed for Doc 08)
+## 9. Period dialects
 
-> Every other BASIC either runs your old programs or compiles to something you'll never read. Ignition compiles to something you'd *write*. It is the only BASIC whose primary output is a diff you can review.
+The Ignition dialect (§2) is the default and the reason this project exists. Beside it, a program can be written in one of six **period dialects**: the most popular microcomputer BASICs of 1975–1982. Classic listings run as they did, and can then be compiled like anything else. The design is adapted from the BASIC Museum (§6.4). None of this is Phase 1 work: Phase 1 builds only the hooks (Doc 01 §16), and the dialects arrive in milestones D1–D3 (§7).
+
+| Dialect | Machines | Year | Family | Screen | First thing you notice |
+|---|---|---|---|---|---|
+| Microsoft 8K BASIC | MITS Altair 8800 | 1975–77 | Microsoft | 72-column teletype | The dialect David Ahl's *BASIC Computer Games* was tested on; the Games library opens in it |
+| TRS-80 Level II BASIC | TRS-80 Model I and III | 1978 | Microsoft | 64 × 16 | `RND(0)` is the fraction and `RND(n)` a whole number from 1 to n, so `RND(1)` is always 1 |
+| Commodore BASIC V2 | PET (after its ROM upgrade), VIC-20, Commodore 64 | 1977–82 | Microsoft | 40 × 25; VIC-20 22 × 23 | `READY.`; one dialect with a screen preset per machine |
+| Applesoft BASIC | Apple II | 1978 | Microsoft | 40 × 24 | The `]` prompt; `HOME`, `HTAB`, `VTAB` |
+| Sinclair BASIC | ZX81, Timex Sinclair 1000 | 1981 | Sinclair | 32 × 24 | `LET` is mandatory, strings slice as `A$(2 TO 4)`, and there's no `READ`/`DATA` |
+| Palo Alto Tiny BASIC | Li-Chen Wang's 8080 listing in *Dr. Dobb's Journal* | 1976 | Tiny BASIC | 72-column teletype | Integers only, variables `A`–`Z` and one array, `@()`; TRS-80 Level I grew from it |
+
+**A program's dialect is part of the program.** It's saved with the source and in share links, and the status bar shows it. The dialect picker changes it, and the program is then compiled under the new dialect's rules; whatever stops working lands in the Errors tab, which is a lesson in itself. There is no global mode, because a ZX81 listing doesn't parse as Commodore BASIC.
+
+**Faithful, not strict.** A period dialect accepts what its machine accepted and does what its machine did. None of §2's strictness applies:
+- Comparisons yield numbers (−1 for true in the Microsoft dialects), and `IF X THEN` means `IF X <> 0 THEN`.
+- `FOR` loops run at least once, and `NEXT` finds its `FOR` at runtime, by variable.
+- Jumps into loops are allowed, and so are computed `GOTO`s on the machines that had them.
+- In the Microsoft dialects, keywords are recognized inside words (`FORI=1TO10`), and only the first two letters of a name count: `SHIPS` and `SHIELDS` are one variable.
+- Numbers print the machine's way and at its precision. In the Microsoft dialects that means a space before a positive number and one after every number.
+- A syntax error is reported when its line runs, as on the machine. Sinclair is the exception: its editor never accepted a bad line, so a bad line is a compile error there.
+- Error reports follow the machine: `?SN ERROR IN 10` on a TRS-80, a report code such as `2/10` on a ZX81, `WHAT?` in Tiny BASIC.
+
+**Numbers are approximated on top of f64.** Each dialect computes in f64 and then applies its machine's rules: rounding to Microsoft single precision (Altair, TRS-80) or to the 40-bit Microsoft format (Commodore, Apple) after each operation, 16-bit integers in Tiny BASIC, and, above all, the machine's PRINT formatting. That is the museum design's locked decision on numbers (its §10.1): fidelity shows in the formatter, and exact emulation comes in only if a golden transcript needs it.
+
+**Compiled output differs, honestly.** Period programs go through the same pipeline (§3) and the same emitters. What differs is the meaning being compiled, and the output carries it:
+- a `FOR` that always runs once becomes a `do…while`;
+- `IF X THEN` becomes `if (x !== 0)`, and a comparison used as a number becomes `(a > b ? -1 : 0)`;
+- Tiny BASIC's integer `A / B` becomes `Math.trunc(a / b)` in JavaScript and `/` on an `i16` in Rust;
+- Sinclair's `A$(2 TO 4)` becomes `.slice(1, 4)`;
+- a variable known by several spellings takes its significant prefix as its name, with a comment listing the spellings.
+
+Each dialect's runtime rules live in a module of `rt-js` and of `ignition-rt`, so emitted code imports `print` from the dialect it was written in. Period output meets the same transcript gates as Ignition's and is judged on faithfulness first, readability second. Where 1978 control flow forces a `Multiple` (§3.1), the Index says why (Principle 4). That will happen often, and showing it is part of the point.
+
+**Architecture.** Each period dialect is a front end (keyword table and tokenizing rules, parser, checks) plus a runtime module (formatter, numeric model, `RND`, error text, screen size), described by a `DialectProfile` adapted from the museum design's §3.1. All of them lower to the same IR and run on the same VM, so Run, Stop, Step, INPUT and the Worker are shared. The IR gains the few instructions faithful semantics need (a runtime FOR stack with `NEXT` matched by variable, computed jumps, a deferred syntax error), and the Ignition dialect never emits them. Every rule in a profile cites its source, a manual page or a run on a reference implementation, under the museum's provenance rule (its §8): a rule nobody has verified may exist, but it can't have a passing test.
+
+**Out of scope:** machine graphics (`SET`/`RESET`, `GR`/`HGR`, PETSCII and ZX81 block characters) until Phase 5's canvas exists; sound; and memory-mapped `PEEK`/`POKE` effects, which stay as §2.5 defines them.
+
+**The Games library.** The Games menu holds the programs of David H. Ahl's *BASIC Computer Games* (Microcomputer Edition, 1978), each opened in Microsoft 8K BASIC.
+- *Source.* `github.com/coding-horror/basic-computer-games` (Unlicense) has 105 original listings in 96 game folders, normalized by Lyle Kopnicky to run on Vintage BASIC. They're imported unchanged. A manifest beside each holds its title, a one-line description, the original author where the book credits one, and the source commit.
+- *Rights.* Ahl placed everything he wrote or edited into the public domain, in a notice dated 15 June 2022, asking that it be used for educational and historical purposes rather than for profit. Ignition is free and MIT-licensed, which honors that, and the manifests credit him and the original authors.
+- *Why Microsoft 8K, not TRS-80 Level II.* The book's back cover says its programs were tested on Microsoft 8K BASIC (Rev 4.0). 65 of the 105 listings call `RND(1)`, which returns a fraction there and always returns 1 on a TRS-80 Level II, so a TRS-80 owner typing those games in had to change it to `RND(0)`. Ignition runs them unchanged, in the dialect they were written for.
+- *Fit.* A game that needs something the profile doesn't do yet is listed with the reason, not quietly patched.
+- *A second use.* These listings are Phase 3's structuring test set: 96 folders of real 1978 control flow (§7).
 
 ---
 
-## 10. Document map
+## 10. Differentiation statement (seed for Doc 08)
+
+> Every other BASIC either runs your old programs or compiles to something you'll never read. Ignition compiles to something you'd *write*, and it runs the classics in their own dialects too. It is the only BASIC whose primary output is a diff you can review.
+
+---
+
+## 11. Document map
 
 | Doc | Title |
 |---|---|
@@ -462,5 +517,6 @@ Phase 1 is deliberately interpreter-only. The emitters are the product, but they
 | 10 | Revision / Gap Analysis |
 | 11 | Architecture Decisions (relooper choice, boolean model, Rust state passing, PRNG) |
 | 12 | Use Cases (learner, nostalgic, prototyper, Museum visitor, Fugløy reuse) |
+| 13 | Period dialects (the profile contract, the six dialects, the Games library; milestones D1–D3) |
 
 Also in `docs/`: the implementation plan (`ignition-implementation-plan.md`, covering every phase) and the Phase 1 kickoff prompt (`ignition-kickoff-prompt.md`, the first part of Doc 07).

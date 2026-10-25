@@ -4,6 +4,8 @@ Ignition BASIC is a small, 1978-flavored BASIC with a browser IDE. It runs your 
 
 You write the way TRS-80 Level II BASIC taught a generation to write — line numbers, `GOTO`, `GOSUB`, `FOR`/`NEXT` — and see what that program *is* in a modern structured language, line for line, in two language families: dynamic and garbage-collected (JavaScript), and static with ownership (Rust). Clicking a BASIC line highlights the code it became. When tangled source produces awkward output, the IDE shows you why instead of hiding it.
 
+It will also run the classics as they were. A dialect picker switches a program to one of six period BASICs: Microsoft 8K BASIC (Altair), TRS-80 Level II, Commodore BASIC V2 (PET, VIC-20, C64), Applesoft (Apple II), Sinclair BASIC (ZX81 / Timex Sinclair 1000) or Palo Alto Tiny BASIC from *Dr. Dobb's Journal*. A Games menu loads the programs from David Ahl's *BASIC Computer Games* (1978). Both arrive after Phase 2 ([Master Design §9](docs/ignition-00-master-design.md#9-period-dialects)).
+
 > **Status: design complete, code not started.** Phase 1 ("Spark") is next and will ship as **0.1.0**: the Level 1 interpreter, a golden-transcript conformance suite and the browser IDE. Compilation to JavaScript and Rust arrives in Phases 3 and 4.
 
 ## A taste

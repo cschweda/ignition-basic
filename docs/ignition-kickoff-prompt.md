@@ -10,11 +10,11 @@ You are building **Phase 1 ("Spark")** of Ignition: a small 1978-flavored BASIC 
 - `docs/ignition-01-phase1-semantics.md` — Doc 01, the exact Phase 1 rules. It is binding and wins over §2 wherever they differ; treat its decisions as settled.
 - `docs/ignition-implementation-plan.md` — its Phase 1 section is your deliverable list and gate.
 
-Master Design §8 lists the decisions still open; none of them is Phase 1 work. Do not implement anything from Phases 2–6.
+Master Design §8 lists the decisions still open; none of them is Phase 1 work. Do not implement anything from Phases 2–6, or from the period dialects (Master Design §9) beyond the hooks in rule 9 below.
 
 ## Project identity
 
-- Repo: `github.com/cschweda/ignition-basic` (the product is called Ignition). Packages under the `@ignition/*` npm scope (unpublished; every `package.json` is `"private": true`).
+- Repo: `github.com/cschweda/ignition-basic`. The product is called **Ignition BASIC**; use the full name in user-facing text (README, IDE title, package descriptions). Packages under the `@ignition/*` npm scope (unpublished; every `package.json` is `"private": true`).
 - Author: Christopher Schweda. License: MIT (`LICENSE` is already in the repo).
 - The product's eventual purpose is *readable* compiled output. Nothing you write in Phase 1 should make that harder: keep the AST and lowered IR rich with source positions and comments, and keep the interpreter's semantics explicit and documented, because the interpreter is the reference every later emitter is tested against.
 
@@ -80,6 +80,7 @@ ignition-basic/
    - Errors carry the Ignition line and use classic names: `?SN ERROR`, `?RG ERROR`, `?BS ERROR`, `?/0 ERROR`, `?UL ERROR` (undefined line), `?NF ERROR` (NEXT without FOR), `?TM ERROR` (type mismatch), `?OD ERROR` (out of DATA), plus `?FC`, `?OV`, `?DD` and `?OM` (Doc 01 §15). The console shows `?BS ERROR IN 120`.
 7. The semantic pass produces the `Index` object exactly as Doc 01 §17 defines it (tier, lines, variables, procedures, lineMap, warnings). Tier is always `'L1'` in Phase 1 and `procedures` stays empty, but every field must exist.
 8. Keywords and identifiers are case-insensitive. Preserve the user's identifier casing in the AST (`display` field); normalize in a `canonical` field. Reserve every keyword Doc 01 §3 lists, including those whose statements arrive in later phases.
+9. **Period-dialect hooks, and nothing more** (Doc 01 §16). `compile(source, { dialect })` accepts only `'ignition'`. The keyword table, number formatter, PRINT rules, INPUT parser, `RND` mapping and error texts sit behind one profile object. Lowering, not the parser, places a FOR loop's test. Implement no period-dialect behavior, not even behind a flag.
 
 ## Statement and function coverage (Phase 1)
 

@@ -1,7 +1,7 @@
 # Ignition — Doc 01: Phase 1 Semantics
 
-**Version:** 0.1 (draft)
-**Date:** 2026-10-24
+**Version:** 0.2 (draft)
+**Date:** 2026-10-25
 **Author:** Christopher Schweda
 **Status:** Proposed — every rule below is a default for review. Edit it before kickoff; after kickoff, changes go through `docs/DECISIONS.md`.
 
@@ -54,7 +54,7 @@ Phase 1 implements Level 1 only. Every item in Master Design §2 is either in or
 | Level 2 statements (§2.4) | Out → Phase 2 | Their keywords are reserved now (§3) |
 | Graphics, keyboard, files, memory, sound (§2.5) | Out → Phase 5 | Keywords reserved now |
 | GUI verbs (§2.8) | Out → Phase 6 | Keywords reserved now; the `idle`/`dispatch` hook is built (§16) |
-| Dialect profile for the BASIC Museum (§6.4) | Out | Keep the formatter, the `RND` mapping and the keyword table each in one module so a profile can be added later |
+| Period dialects (§9) | Out → D1, after Phase 2 | Phase 1 builds only their hooks (§16) |
 
 ## 2. Program structure
 
@@ -497,7 +497,7 @@ Naming convention, used everywhere: `lineno` is an Ignition line number; `{ line
 **API** (this refines the kickoff prompt's §4):
 
 ```ts
-compile(source: string): { program: Program | null; index: Index; errors: IgnitionError[] }
+compile(source: string, options?: { dialect?: 'ignition' }): { program: Program | null; index: Index; errors: IgnitionError[] }
 // program is null when errors is non-empty
 
 createVM(program, {
@@ -546,11 +546,18 @@ The VM prints prompts, input echoes, INPUT messages and error lines itself. Adap
 
 The interpreter calls it. Phase 3's emitted JavaScript imports the same functions, which is what makes Live and JS runs identical "by construction" (Master Design §3.3).
 
+**Hooks for the period dialects** (Master Design §9). Phase 1 builds no other dialect, only these:
+- `compile` takes `{ dialect }`. The only value is `'ignition'`, the default; anything else throws, because it's a host bug. The program and the Index (§17) record the dialect.
+- Everything a period dialect will change sits behind one profile object, which the lexer, the semantic pass, lowering and the interpreter consult: the keyword table, the number formatter, the PRINT rules (zone width 16, no line width), the INPUT field parser, the `RND` mapping and the error texts. Phase 1 has exactly one profile, Ignition's.
+- Lowering, not the parser, decides where a FOR loop's test goes. The parser records FOR and NEXT as plain statements, the semantic pass pairs them (§9), and lowering emits the test-before-body shape. A period dialect will lower the same statements to a test-at-NEXT shape with a runtime loop stack.
+- No period-dialect behaviour (−1 as true, test-at-NEXT, padded numbers, a line width) is implemented in Phase 1, not even behind a flag.
+
 ## 17. The Index object
 
 ```ts
 interface Index {
   tier: 'L1'                                  // 'L2' arrives in Phase 2
+  dialect: 'ignition'                         // the period dialects arrive in D1 (Master Design §9)
   lines: number[]                             // linenos, in order
   variables: {
     name: string                              // display spelling, with sigil
@@ -606,5 +613,5 @@ What Phase 1 forbids or leaves out, and where each item is expected to land. Any
 | `IF … GOTO n` without `THEN`; PRINT items without separators | `?SN` | could be allowed |
 | NEXT inside an IF branch; jumping into a loop; computed GOTO | `?NF` / `?SN` | probably never: they defeat structured output |
 | Crunched keywords (`FORI=1TO10`) | `?SN` | never; long names make it ambiguous |
-| Dialect profile | not built | when the BASIC Museum needs it |
+| Period dialects | hooks only (§16) | D1–D3 (Master Design §9) |
 | "RETURN reachable without GOSUB" warning | — | Phase 3, once the CFG exists |

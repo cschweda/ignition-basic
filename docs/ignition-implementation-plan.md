@@ -1,6 +1,6 @@
 # Ignition — Implementation Plan
 
-**Version:** 0.1 · 2026-10-24 · Christopher Schweda
+**Version:** 0.2 · 2026-10-25 · Christopher Schweda
 **Companions:** `ignition-00-master-design.md` (what and why) and `ignition-01-phase1-semantics.md` (Doc 01: the exact Phase 1 rules). This document is the *how* and *in what order*. Each phase ends with something runnable and a test gate that must be green before the next phase begins.
 
 ---
@@ -95,6 +95,44 @@
 
 ---
 
+## Period dialects — D1 to D3
+
+**Goal:** Classic listings run as they did on their machines and compile like anything else (Master Design §9). The period dialects are a track beside the numbered phases: D1 lands between Phases 2 and 3, D2 alongside Phase 3, and D3 alongside Phase 4. Doc 13 holds the details, and every rule in it cites a manual page or a reference run.
+
+### D1 — the Microsoft core, TRS-80 Level II and the Games library (after Phase 2)
+- `DialectProfile` in `core`: keyword table and tokenizing rules, numeric model, truth value, FOR semantics, how much of a name counts, string and array models, PRINT rules (zones, number padding, line width), error texts and display, `RND` convention, screen size, prompt. Adapted from the BASIC Museum design's §3.1.
+- IR additions for faithful semantics: a runtime FOR stack with `NEXT` matched by variable, a deferred syntax error, numeric-model coercions. The Ignition dialect never emits them.
+- Two profiles over one Microsoft core:
+  - **Microsoft 8K BASIC** (Altair, Rev 4.0): the dialect *BASIC Computer Games* was tested on, so the Games library runs on it.
+  - **TRS-80 Level II**: the Microsoft core plus Level II's own rules, among them `RND(0)` for the fraction and `RND(n)` for a whole number from 1 to n.
+- `rt-js` modules for both: formatter, numeric model, `RND`, error text.
+- IDE: the dialect picker (saved with the program and in share links, shown in the status bar) and the Games menu.
+- `packages/games`: the listings from `coding-horror/basic-computer-games` at a pinned commit, unchanged; a manifest per game (title, one-line description, original author where the book credits one, source commit); a scripted session for each.
+
+#### Gate
+- Every listing parses under Microsoft 8K BASIC.
+- Each runs its scripted session to a normal end, or is listed in its manifest with the reason it can't.
+- At least 12 hand-checked transcripts are goldens. Master Design §8.9 decides whether a reference implementation checks the rest.
+- An end-to-end test covers switching a program's dialect in the IDE.
+
+### D2 — Commodore BASIC V2 and Applesoft (alongside Phase 3)
+- Both are Microsoft 6502 BASICs, so they reuse D1's Microsoft core.
+- Commodore BASIC V2 with screen presets for the PET (40 × 25), the VIC-20 (22 × 23) and the Commodore 64 (40 × 25), including the screen-control characters a listing uses inside strings (clear, home, cursor moves).
+- Applesoft with `HOME`, `HTAB`, `VTAB`, `INVERSE` and `NORMAL` on a 40 × 24 screen.
+- Text only: machine graphics (PETSCII art, `GR`, `HGR`) wait for Phase 5's canvas.
+
+#### Gate
+- A tour and a number-guess program with goldens for each dialect; their emitted JS passes Phase 3's transcript gate.
+
+### D3 — Sinclair BASIC and Palo Alto Tiny BASIC (alongside Phase 4)
+- Sinclair BASIC as on the ZX81 and Timex Sinclair 1000: mandatory `LET`, slicing (`A$(2 TO 4)`), `PRINT AT` on a 32 × 24 screen, `RAND` and an argument-less `RND`, no `READ`/`DATA`. Keyword entry follows Master Design §8.8.
+- Palo Alto Tiny BASIC: 16-bit integers, variables `A`–`Z`, the `@()` array, `PR.`-style abbreviations, and the `WHAT?` / `HOW?` / `SORRY` errors.
+
+#### Gate
+- A tour and a number-guess program with goldens for each dialect; their emitted JS and Rust pass the transcript gates.
+
+---
+
 ## Phase 3 — JavaScript target
 
 **Goal:** The headline feature. Readable JS from any example.
@@ -111,6 +149,7 @@
 ### Gate
 - For every example: Node-executed emitted JS transcript === interpreter transcript.
 - Emitted JS byte-identical to goldens.
+- Every Ahl listing that runs under D1 compiles to JS, and its scripted session's JS transcript equals the interpreter's. Readability goldens stay limited to the 20 examples.
 - Manual review of the GOSUB-heavy example's output: it must read like a human wrote it, or the pre-pass is adjusted before the gate closes.
 
 ---
@@ -198,6 +237,7 @@
 - Phases 1 → 2 → 3 are strictly ordered. 4 depends on 3 (shared IR). 5's language additions can start any time after 2; the build service is independent and can be built in parallel with 4.
 - Phase 6 depends on 3 (JS emitter) for the `html`, `node`, and `electron` exports and on 4 (Rust emitter) only for Tauri's command generation. A Tauri export with an empty backend is possible after Phase 3; the Rust-command half lands when Phase 4 is done. The GUI verbs themselves need only Phase 2.
 - The `idle`/`dispatch` hook in Phase 1 is the only Phase 6 work that happens early, and it is there precisely so Phase 6 never has to reopen the interpreter core.
+- The period dialects need Phase 2's interpreter and nothing later. D1 goes before Phase 3 so the structuring work meets real 1978 control flow from its first day; D2 and D3 ride along with Phases 3 and 4 and get JS and Rust output as those phases land. Phase 1's only period-dialect work is the hooks in Doc 01 §16.
 - The decision in Phase 4 about the Rust `PRINT` API is the only one that should be made *before* its phase starts, because it affects how much the structured IR needs to carry about PRINT arguments. Settle it at the end of Phase 3.
 - If the GOSUB-extraction heuristics turn out to need real tuning, the place to spend the time is Phase 3, on the JS output, where iteration is fastest. Rust inherits the fix for free.
 

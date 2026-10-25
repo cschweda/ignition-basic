@@ -14,5 +14,10 @@ Working toward **0.1.0 — Phase 1 ("Spark")**: the Level 1 interpreter, the gol
   - [Implementation plan](docs/ignition-implementation-plan.md): the phases, their build order and their gates.
   - [Phase 1 kickoff prompt](docs/ignition-kickoff-prompt.md): the brief for the coding agent that builds Phase 1.
 - Repository basics: README, MIT license, this changelog, `.gitignore`, and `.nvmrc` pinning Node 24.
+- Design for six period dialects (Microsoft 8K BASIC, TRS-80 Level II, Commodore BASIC V2, Applesoft, Sinclair BASIC, Palo Alto Tiny BASIC) and a Games library of David Ahl's *BASIC Computer Games*, planned for after Phase 2 ([Master Design §9](docs/ignition-00-master-design.md#9-period-dialects)).
+
+### Changed
+
+- The README calls the project Ignition BASIC.
 
 [Unreleased]: https://github.com/cschweda/ignition-basic/commits/main
