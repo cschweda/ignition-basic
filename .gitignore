@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Nuxt / Nitro build output
+.nuxt/
+.output/
+.nitro/
+.data/
+.cache/
+dist/
+
+# Netlify
+.netlify/
+
+# Tests and coverage
+coverage/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# Rust (Phase 4+); Cargo.lock is committed
+target/
+
+# Logs and caches
+*.log
+npm-debug.log*
+pnpm-debug.log*
+*.tsbuildinfo
+.eslintcache
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Editors and OS
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+*.swp
