@@ -363,7 +363,7 @@ class Machine implements VM {
         break
       case 'stop':
         this.#printer.startLine()
-        this.#printer.text(`BREAK IN ${instr.lineno}`)
+        this.#printer.text(this.#profile.messages.breakIn(instr.lineno))
         this.#printer.newline()
         this.#status = 'ended'
         break
@@ -519,9 +519,10 @@ class Machine implements VM {
   /** Prints the prompt (or `?? ` for the rest of the values) and waits. */
   #prompt(continuing: boolean): void {
     const prompt = this.#pending?.instr.stmt.prompt ?? null
-    if (continuing) this.#printer.text('?? ')
-    else if (prompt === null) this.#printer.text('? ')
-    else this.#printer.text(prompt.separator === ';' ? `${prompt.text}? ` : prompt.text)
+    const { messages } = this.#profile
+    if (continuing) this.#printer.text(messages.more)
+    else if (prompt === null) this.#printer.text(messages.prompt)
+    else this.#printer.text(prompt.separator === ';' ? prompt.text + messages.prompt : prompt.text)
     this.#status = 'waiting-input'
     this.#console.requestInput(prompt?.text ?? '?')
   }
@@ -550,7 +551,7 @@ class Machine implements VM {
       else accepted.push(value)
     }
     if (!valid || fields === null) {
-      this.#printer.text('?REDO FROM START')
+      this.#printer.text(this.#profile.messages.redo)
       this.#printer.newline()
       pending.values = []
       this.#prompt(false)
@@ -562,7 +563,7 @@ class Machine implements VM {
       return
     }
     if (fields.length > remaining.length) {
-      this.#printer.text('?EXTRA IGNORED')
+      this.#printer.text(this.#profile.messages.extra)
       this.#printer.newline()
     }
     // Every target has a valid value: now evaluate each target's subscripts and store it.

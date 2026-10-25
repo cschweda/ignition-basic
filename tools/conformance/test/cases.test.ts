@@ -59,6 +59,29 @@ describe('findCases reports layout problems', () => {
     expect(problems).toEqual(['01-a: extra.input.txt has no matching transcript'])
   })
 
+  test('a golden that does not end with exactly one line break', () => {
+    const { problems } = findCases(
+      layout({
+        '01-a/program.bas': '10 END\n',
+        '01-a/transcript.txt': 'X',
+        '01-a/two.transcript.txt': 'X\n\n',
+      }),
+    )
+    expect(problems).toEqual([
+      '01-a: transcript.txt must end with exactly one line break',
+      '01-a: two.transcript.txt must end with exactly one line break',
+    ])
+  })
+
+  test('a golden with carriage returns, as a CRLF checkout would have', () => {
+    const { problems } = findCases(
+      layout({ '01-a/program.bas': '10 END\n', '01-a/transcript.txt': 'X\r\n' }),
+    )
+    expect(problems).toEqual([
+      '01-a: transcript.txt has carriage returns; goldens use LF line endings (see .gitattributes)',
+    ])
+  })
+
   test('a directory with no program.bas', () => {
     const { problems } = findCases(layout({ '01-a/transcript.txt': '\n' }))
     expect(problems).toEqual(['01-a: no program.bas'])

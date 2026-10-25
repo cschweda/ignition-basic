@@ -36,6 +36,16 @@ export interface DialectProfile {
   rnd(generator: GeneratorState, x: number): number
   /** The console line for a runtime error. */
   errorLine(code: ErrorCode, lineno: number): string
+  /** What INPUT and STOP print (Doc 01 §8 and §9). */
+  messages: {
+    /** After a prompt followed by `;`, or alone when there is no prompt. */
+    prompt: string
+    /** Asks for the rest of the values. */
+    more: string
+    redo: string
+    extra: string
+    breakIn(lineno: number): string
+  }
 }
 
 export const IGNITION_PROFILE: DialectProfile = {
@@ -45,4 +55,11 @@ export const IGNITION_PROFILE: DialectProfile = {
   input: { split: splitInputLine, wholeLine: wholeLineField, convert: convertInputField },
   rnd,
   errorLine,
+  messages: {
+    prompt: '? ',
+    more: '?? ',
+    redo: '?REDO FROM START',
+    extra: '?EXTRA IGNORED',
+    breakIn: (lineno) => `BREAK IN ${lineno}`,
+  },
 }

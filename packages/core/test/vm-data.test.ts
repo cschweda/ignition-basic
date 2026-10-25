@@ -60,6 +60,10 @@ describe('DATA, READ and RESTORE (Doc 01 §11)', () => {
     expect(output('10 READ A, B\n20 DATA 1')).toBe('?OD ERROR IN 10\n')
   })
 
+  test('a tab after DATA is a blank, as anywhere else in a line', () => {
+    expect(output('10 READ A\n20 PRINT A + 1\n30 DATA\t5')).toBe('6\n')
+  })
+
   test('an empty item is the empty string', () => {
     expect(output('10 READ A$\n20 PRINT "["; A$; "]"\n30 DATA ,X')).toBe('[]\n')
   })

@@ -317,6 +317,15 @@ describe('arrays and data (Doc 01 §10 and §11)', () => {
     expect(errorCodes('10 DATA "A"B')).toEqual(['SN@10'])
   })
 
+  test('DATA items are trimmed of tabs as well as spaces, like the rest of the source', () => {
+    const s = first('10 DATA\t5,\tAPPLE PIE\t, "X"\t')
+    expect(s.kind === 'Data' && s.items.map((i) => [i.kind, i.value])).toEqual([
+      ['Number', 5],
+      ['String', 'APPLE PIE'],
+      ['String', 'X'],
+    ])
+  })
+
   test('an unquoted DATA item cannot contain a quote', () => {
     expect(errorCodes('10 DATA AB"C')).toEqual(['SN@10'])
   })

@@ -41,3 +41,31 @@ describe('compile (Doc 01 §16)', () => {
     expect(() => compile('10 END', { dialect: 'trs80' as 'ignition' })).toThrow(/dialect/)
   })
 })
+
+describe('nesting limits keep compile() from overflowing the host stack (docs/DECISIONS.md)', () => {
+  const codes = (src: string) => compile(src).errors.map((e) => `${e.code}@${e.lineno}`)
+
+  test('an expression may nest 255 levels; deeper is ?SN, never a thrown exception', () => {
+    const parens = (n: number) => `10 PRINT ${'('.repeat(n)}1${')'.repeat(n)}`
+    expect(codes(parens(200))).toEqual([])
+    expect(codes(parens(1000))).toEqual(['SN@10'])
+    expect(compile(parens(1000)).errors[0]?.message).toContain('nested')
+  })
+
+  test('a long chain of operators counts as nesting', () => {
+    expect(codes(`10 X = 1${' + 1'.repeat(10_000)}`)).toEqual(['SN@10'])
+    expect(codes(`10 X$ = "A"${' + "A"'.repeat(5_000)}`)).toEqual(['SN@10'])
+    expect(codes(`10 X = 1${' + 1'.repeat(200)}`)).toEqual([])
+  })
+
+  test('so do runs of unary operators', () => {
+    expect(codes(`10 X = ${'-'.repeat(5_000)}1`)).toEqual(['SN@10'])
+    expect(codes(`10 IF ${'NOT '.repeat(5_000)}1 > 2 THEN 10`)).toEqual(['SN@10'])
+  })
+
+  test('IF statements may nest 255 deep on one line', () => {
+    const ifs = (n: number) => `10 ${'IF 1 > 0 THEN '.repeat(n)}PRINT "DEEP"`
+    expect(codes(ifs(100))).toEqual([])
+    expect(codes(ifs(2_000))).toEqual(['SN@10'])
+  })
+})

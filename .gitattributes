@@ -1,0 +1,3 @@
+# Goldens and sources use LF everywhere. A CRLF checkout (Git for Windows' default) would make
+# every golden transcript differ from the interpreter's output.
+* text=auto eol=lf

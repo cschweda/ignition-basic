@@ -10,8 +10,12 @@ function lines(text: string): string[] {
   return list
 }
 
-/** Trailing spaces are invisible in a terminal, so they are shown as `␠`. */
-const visible = (line: string): string => line.replace(/ +$/, (spaces) => '␠'.repeat(spaces.length))
+/**
+ * Trailing spaces and carriage returns are invisible in a terminal, so they are shown as `␠` and
+ * `␍`. A CRLF checkout of a golden would otherwise produce a diff of identical-looking lines.
+ */
+const visible = (line: string): string =>
+  line.replace(/\r/g, '␍').replace(/ +$/, (spaces) => '␠'.repeat(spaces.length))
 
 /**
  * A unified diff of two texts, line by line, with `context` lines around each change. Returns ''
@@ -70,6 +74,7 @@ export function unifiedDiff(
   }
 
   const out = [`--- ${expectedLabel}`, `+++ ${actualLabel}`]
+  if (hunks.length === 0) out.push('(the texts differ only in their final line break)')
   for (const [from, to] of hunks) {
     const before = ops.slice(0, from)
     const aStart = before.filter((op) => op.kind !== '+').length + 1

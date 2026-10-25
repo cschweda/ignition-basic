@@ -57,12 +57,24 @@ export function findCases(dir: string): { cases: Case[]; problems: string[] } {
     }
     for (const name of names) {
       const prefix = name === 'default' ? '' : `${name}.`
+      const file = `${prefix}transcript.txt`
+      const transcript = readFileSync(join(folder, file), 'utf8')
+      if (transcript.includes('\r')) {
+        problems.push(
+          `${example}: ${file} has carriage returns; goldens use LF line endings (see .gitattributes)`,
+        )
+        continue
+      }
+      if (!transcript.endsWith('\n') || transcript.endsWith('\n\n')) {
+        problems.push(`${example}: ${file} must end with exactly one line break`)
+        continue
+      }
       cases.push({
         example,
         name,
         source,
         inputLines: readInput(join(folder, `${prefix}input.txt`)),
-        transcript: readFileSync(join(folder, `${prefix}transcript.txt`), 'utf8'),
+        transcript,
       })
     }
   }

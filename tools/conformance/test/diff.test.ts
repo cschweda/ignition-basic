@@ -24,6 +24,18 @@ describe('unifiedDiff', () => {
     )
   })
 
+  test('shows carriage returns as ␍, so CRLF line endings are visible', () => {
+    expect(unifiedDiff('A\n', 'A\r\n', 'e', 'a')).toBe(
+      ['--- e', '+++ a', '@@ -1,1 +1,1 @@', '-A', '+A␍', ''].join('\n'),
+    )
+  })
+
+  test('says so when the texts differ only in their final line break', () => {
+    expect(unifiedDiff('A', 'A\n', 'e', 'a')).toBe(
+      ['--- e', '+++ a', '(the texts differ only in their final line break)', ''].join('\n'),
+    )
+  })
+
   test('keeps three lines of context and separates distant changes into hunks', () => {
     const before = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'].join('\n') + '\n'
     const after = before.replace('2\n', 'two\n').replace('11\n', 'eleven\n')

@@ -54,7 +54,13 @@ describe('ROUND: the rest of its definition', () => {
     expect(faultCode(() => round(1, NaN))).toBe('FC')
   })
 
-  test('a huge value comes back as the 15-digit value PRINT shows', () => {
-    expect(round(1.7976931348623157e308, -15)).toBe(Number('1.79769313486232E+308'))
+  test('a large value comes back as the 15-digit value PRINT shows', () => {
+    expect(round(1.2345678901234567e300, -15)).toBe(1.23456789012346e300)
+  })
+
+  test('a result that rounds past the largest double raises ?OV (Doc 01 §12)', () => {
+    // PRINT shows the largest double as 1.79769313486232E+308, which is beyond it.
+    expect(faultCode(() => round(1.7976931348623157e308))).toBe('OV')
+    expect(faultCode(() => round(-1.7976931348623157e308, -15))).toBe('OV')
   })
 })

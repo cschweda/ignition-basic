@@ -61,6 +61,16 @@ const FUNCTIONS: ReadonlySet<string> = new Set([
 
 const RELATIONAL: ReadonlySet<string> = new Set(['=', '<>', '<', '>', '<=', '>='])
 
+/**
+ * How deeply an expression may nest, and how many IFs one line may nest (docs/DECISIONS.md).
+ * Every pass, here and in later phases, recurses over these trees; the limit makes running out
+ * of host stack a ?SN with a message instead of an exception, the same in every host.
+ */
+export const MAX_NESTING = 255
+
+/** In source text, as in the lexer, a blank is a space or a tab (docs/DECISIONS.md). */
+const isBlank = (c: string | undefined): boolean => c === ' ' || c === '\t'
+
 /** Aborts the current line; `parse` turns it into an IgnitionError and moves to the next line. */
 class LineFault {
   readonly code: 'SN' | 'OV'
@@ -111,8 +121,14 @@ export function parse(source: string, keywords: KeywordTable = IGNITION_KEYWORDS
     try {
       line.statements = new LineParser(lineTokens, lineno).parseLine()
     } catch (e) {
-      if (!(e instanceof LineFault)) throw e
-      errors.push(compileError(e.code, e.detail, e.pos, lineno))
+      if (e instanceof LineFault) {
+        errors.push(compileError(e.code, e.detail, e.pos, lineno))
+      } else if (e instanceof RangeError) {
+        // A backstop: MAX_NESTING should make this unreachable.
+        errors.push(compileError('SN', 'this line is too complex to compile', start.pos, lineno))
+      } else {
+        throw e
+      }
     }
   }
 
@@ -127,6 +143,11 @@ class LineParser {
   readonly #tokens: Token[]
   readonly #lineno: number
   #i = 1 // past the line number
+  /** How many recursive parsing levels are open, for MAX_NESTING. */
+  #nesting = 0
+  #ifDepth = 0
+  /** Each expression node's depth: the longest path from it to a leaf. Leaves are 1. */
+  readonly #depths = new Map<Expr, number>()
 
   constructor(tokens: Token[], lineno: number) {
     this.#tokens = tokens
@@ -361,17 +382,24 @@ class LineParser {
   }
 
   #if(at: { pos: Pos; lineno: number }): If {
-    const cond = this.#expression()
-    const t = this.#peek()
-    if (this.#isKeyword(t, 'GOTO')) this.#fail('IF … GOTO is not supported; write IF … THEN n', t)
-    this.#expectKeyword('THEN')
-    const then = this.#branch('THEN')
-    let otherwise: Branch | null = null
-    if (this.#isKeyword(this.#peek(), 'ELSE')) {
-      this.#next()
-      otherwise = this.#branch('ELSE')
+    if (++this.#ifDepth > MAX_NESTING) {
+      throw new LineFault('SN', `IF statements are nested more than ${MAX_NESTING} deep`, at.pos)
     }
-    return { kind: 'If', cond, then, else: otherwise, ...at }
+    try {
+      const cond = this.#expression()
+      const t = this.#peek()
+      if (this.#isKeyword(t, 'GOTO')) this.#fail('IF … GOTO is not supported; write IF … THEN n', t)
+      this.#expectKeyword('THEN')
+      const then = this.#branch('THEN')
+      let otherwise: Branch | null = null
+      if (this.#isKeyword(this.#peek(), 'ELSE')) {
+        this.#next()
+        otherwise = this.#branch('ELSE')
+      }
+      return { kind: 'If', cond, then, else: otherwise, ...at }
+    } finally {
+      this.#ifDepth--
+    }
   }
 
   /** THEN or ELSE is followed by a line number or by statements (Doc 01 §9). */
@@ -437,7 +465,7 @@ class LineParser {
     const posOf = (i: number): Pos => ({ line: at.line, col: at.col + i })
     let i = 0
     for (;;) {
-      while (raw[i] === ' ') i++
+      while (isBlank(raw[i])) i++
       if (raw[i] === '"') {
         const start = i
         let value = ''
@@ -457,7 +485,7 @@ class LineParser {
           value += raw[j]
           j++
         }
-        while (raw[j] === ' ') j++
+        while (isBlank(raw[j])) j++
         if (j < raw.length && raw[j] !== ',') {
           throw new LineFault('SN', 'only a comma may follow a quoted DATA item', posOf(j))
         }
@@ -466,7 +494,7 @@ class LineParser {
       } else {
         const comma = raw.indexOf(',', i)
         const end = comma === -1 ? raw.length : comma
-        const text = raw.slice(i, end).replace(/ +$/, '')
+        const text = raw.slice(i, end).replace(/[ \t]+$/, '')
         if (text.includes('"')) {
           throw new LineFault(
             'SN',
@@ -514,7 +542,8 @@ class LineParser {
     if (t.kind !== 'ident') this.#fail(`expected a variable, found ${describe(t)}`, t)
     this.#next()
     if (this.#isOp(this.#peek(), '(')) {
-      return { kind: 'Index', pos: t.pos, name: nameOf(t), indices: this.#parenthesizedList() }
+      const indices = this.#parenthesizedList()
+      return this.#node({ kind: 'Index', pos: t.pos, name: nameOf(t), indices }, ...indices)
     }
     return { kind: 'Var', pos: t.pos, name: nameOf(t) }
   }
@@ -542,21 +571,53 @@ class LineParser {
 
   // --------------------------------------------------------------------------- expressions
 
+  /** Runs `parse` one recursive level deeper; past MAX_NESTING levels the line is ?SN. */
+  #nested<T>(at: Token, parse: () => T): T {
+    if (++this.#nesting > MAX_NESTING) this.#tooDeep(at.pos)
+    try {
+      return parse()
+    } finally {
+      this.#nesting--
+    }
+  }
+
+  /** Records a new node's depth; a node more than MAX_NESTING deep makes the line ?SN. */
+  #node<T extends Expr>(expr: T, ...children: Expr[]): T {
+    const depth = 1 + Math.max(0, ...children.map((c) => this.#depths.get(c) ?? 1))
+    if (depth > MAX_NESTING) this.#tooDeep(expr.pos)
+    this.#depths.set(expr, depth)
+    return expr
+  }
+
+  #tooDeep(pos: Pos): never {
+    throw new LineFault(
+      'SN',
+      `this expression is nested more than ${MAX_NESTING} levels deep; split it up with a variable`,
+      pos,
+    )
+  }
+
+  #binary(op: BinaryOp, left: Expr, right: Expr, pos: Pos): Expr {
+    return this.#node({ kind: 'Binary', op, left, right, pos }, left, right)
+  }
+
   /** Precedence, loosest first: OR, AND, NOT, comparisons, + -, * / \ MOD, unary - +, ^. */
   #expression(): Expr {
-    let left = this.#and()
-    while (this.#isKeyword(this.#peek(), 'OR')) {
-      const op = this.#next()
-      left = { kind: 'Binary', op: 'OR', left, right: this.#and(), pos: op.pos }
-    }
-    return left
+    return this.#nested(this.#peek(), () => {
+      let left = this.#and()
+      while (this.#isKeyword(this.#peek(), 'OR')) {
+        const op = this.#next()
+        left = this.#binary('OR', left, this.#and(), op.pos)
+      }
+      return left
+    })
   }
 
   #and(): Expr {
     let left = this.#not()
     while (this.#isKeyword(this.#peek(), 'AND')) {
       const op = this.#next()
-      left = { kind: 'Binary', op: 'AND', left, right: this.#not(), pos: op.pos }
+      left = this.#binary('AND', left, this.#not(), op.pos)
     }
     return left
   }
@@ -565,7 +626,8 @@ class LineParser {
     const t = this.#peek()
     if (this.#isKeyword(t, 'NOT')) {
       this.#next()
-      return { kind: 'Unary', op: 'NOT', operand: this.#not(), pos: t.pos }
+      const operand = this.#nested(t, () => this.#not())
+      return this.#node({ kind: 'Unary', op: 'NOT', operand, pos: t.pos }, operand)
     }
     return this.#comparison()
   }
@@ -575,13 +637,7 @@ class LineParser {
     const t = this.#peek()
     if (t.kind !== 'op' || !RELATIONAL.has(t.op)) return left
     this.#next()
-    const node: Expr = {
-      kind: 'Binary',
-      op: t.op as BinaryOp,
-      left,
-      right: this.#additive(),
-      pos: t.pos,
-    }
+    const node = this.#binary(t.op as BinaryOp, left, this.#additive(), t.pos)
     const again = this.#peek()
     if (again.kind === 'op' && RELATIONAL.has(again.op)) {
       this.#fail("comparisons can't be chained; join them with AND", again)
@@ -596,7 +652,7 @@ class LineParser {
       if (!this.#isOp(t, '+') && !this.#isOp(t, '-')) return left
       this.#next()
       const op: BinaryOp = this.#isOp(t, '+') ? '+' : '-'
-      left = { kind: 'Binary', op, left, right: this.#multiplicative(), pos: t.pos }
+      left = this.#binary(op, left, this.#multiplicative(), t.pos)
     }
   }
 
@@ -611,7 +667,7 @@ class LineParser {
       else if (this.#isKeyword(t, 'MOD')) op = 'MOD'
       else return left
       this.#next()
-      left = { kind: 'Binary', op, left, right: this.#unary(), pos: t.pos }
+      left = this.#binary(op, left, this.#unary(), t.pos)
     }
   }
 
@@ -619,12 +675,9 @@ class LineParser {
     const t = this.#peek()
     if (this.#isOp(t, '-') || this.#isOp(t, '+')) {
       this.#next()
-      return {
-        kind: 'Unary',
-        op: this.#isOp(t, '-') ? '-' : '+',
-        operand: this.#unary(),
-        pos: t.pos,
-      }
+      const operand = this.#nested(t, () => this.#unary())
+      const op = this.#isOp(t, '-') ? '-' : '+'
+      return this.#node({ kind: 'Unary', op, operand, pos: t.pos }, operand)
     }
     return this.#power()
   }
@@ -635,7 +688,7 @@ class LineParser {
     const t = this.#peek()
     if (!this.#isOp(t, '^')) return base
     this.#next()
-    return { kind: 'Binary', op: '^', left: base, right: this.#unary(), pos: t.pos }
+    return this.#binary('^', base, this.#unary(), t.pos)
   }
 
   #primary(): Expr {
@@ -650,7 +703,8 @@ class LineParser {
       case 'ident': {
         this.#next()
         if (this.#isOp(this.#peek(), '(')) {
-          return { kind: 'Index', pos: t.pos, name: nameOf(t), indices: this.#parenthesizedList() }
+          const indices = this.#parenthesizedList()
+          return this.#node({ kind: 'Index', pos: t.pos, name: nameOf(t), indices }, ...indices)
         }
         return { kind: 'Var', pos: t.pos, name: nameOf(t) }
       }
@@ -659,7 +713,7 @@ class LineParser {
           this.#next()
           const expr = this.#expression()
           this.#expectOp(')', ')')
-          return { kind: 'Paren', expr, pos: t.pos }
+          return this.#node({ kind: 'Paren', expr, pos: t.pos }, expr)
         }
         break
       case 'keyword': {
@@ -674,7 +728,8 @@ class LineParser {
           this.#next()
           if (!this.#isOp(this.#peek(), '('))
             this.#fail(`${k} needs its arguments in parentheses`, this.#peek())
-          return { kind: 'Call', fn: k, args: this.#parenthesizedList(), pos: t.pos }
+          const args = this.#parenthesizedList()
+          return this.#node({ kind: 'Call', fn: k, args, pos: t.pos }, ...args)
         }
         const phase = laterPhaseOf(k)
         if (phase !== null) this.#fail(`${k} arrives in Phase ${phase}`, t)

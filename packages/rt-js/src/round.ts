@@ -1,6 +1,6 @@
 import { fault } from './errors.ts'
 import { shownDigits } from './format.ts'
-import { checkFinite } from './checks.ts'
+import { checkFinite, checkResult } from './checks.ts'
 
 /**
  * ROUND(x [, n]) (Doc 01 §12): rounds the decimal value PRINT shows for `x` to `n` decimal places,
@@ -39,6 +39,7 @@ export function round(x: number, n = 0): number {
   } else if (places < 0) {
     text += '0'.repeat(-places)
   }
-  // With |places| <= 15 rounding only happens below 10^30, so the result is always finite.
-  return Number(sign + text)
+  // The shown value of a number near the largest double can lie beyond it: PRINT shows
+  // 1.7976931348623157E308 as 1.79769313486232E+308. That result is infinite, so ?OV.
+  return checkResult('ROUND', Number(sign + text))
 }
